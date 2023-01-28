@@ -2,14 +2,32 @@ import requests
 from bs4 import BeautifulSoup
 import feedparser
 import datetime
-from random import randint
+from pytz import timezone
+
 from telebot import types
 from config import tkn_w, tkn_c
 
 
+class Menu:
+    def __init__(self):
+        self.keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+        but1 = types.KeyboardButton('\U0001F326 Погода')
+        but2 = types.KeyboardButton('\U0001F525 Новости')
+        but3 = types.KeyboardButton('\U00002651 Гороскоп')
+        but4 = types.KeyboardButton('\U0001F4B1 Конвертация валюты')
+        but5 = types.KeyboardButton('\U0001F3AE Мини-игры')
+        self.keyboard.add(but1, but2, but3, but4, but5)
+
+        self.game_keyboard = types.InlineKeyboardMarkup()
+        game_but1 = types.InlineKeyboardButton("\U0001F91C \U0000270C \U0001FAF3 \U0001F90F \U0001F596",
+                                               callback_data='Ящерица-Спок')
+        game_but2 = types.InlineKeyboardButton("\U0000274C - \U00002B55", callback_data='Крестики-Нолики')
+        self.game_keyboard.add(game_but1, game_but2)
+
+
 class Weather:
     def __init__(self):
-        self.dic_city = {
+        self.dict_city = {
             'Москва': 'Moscow',
             'С.-Петербург': 'Saint Petersburg',
             'Новосибирск': 'Novosibirsk',
@@ -33,7 +51,7 @@ class Weather:
 
     def get_weather(self, city):
         w = requests.get(
-            f'https://api.openweathermap.org/data/2.5/weather?q={self.dic_city[city]}&appid={tkn_w}&units=metric').json()
+            f'https://api.openweathermap.org/data/2.5/weather?q={self.dict_city[city]}&appid={tkn_w}&units=metric').json()
         weather_smile = {
             'Thunderstorm': 'Гроза \U000026C8',
             'Drizzle': 'Морось \U0001F328',
@@ -62,34 +80,49 @@ class Weather:
             f"\U0001F4A7 Влажность: {w['main']['humidity']}%\n",
             f"\U0001F449 Давление: {w['main']['pressure']} мм.рт.ст\n",
             f"\U0001F4A8 Скорость ветра: {round(w['wind']['speed'])} м/с\n",
-            f"Восход: {str(datetime.datetime.fromtimestamp(w['sys']['sunrise']))[11:]}\n",
-            f"Закат: {str(datetime.datetime.fromtimestamp(w['sys']['sunset']))[11:]}\n",
+            f"Восход: {str(datetime.datetime.fromtimestamp(w['sys']['sunrise'], tz=timezone('Europe/Moscow')))[11:19]}\n",
+            f"Закат: {str(datetime.datetime.fromtimestamp(w['sys']['sunset'], tz=timezone('Europe/Moscow')))[11:19]}\n",
             f"Продолжительность дня: {datetime.datetime.fromtimestamp(w['sys']['sunset']) - datetime.datetime.fromtimestamp(w['sys']['sunrise'])}\n"
         ]
         return ''.join(weather)
 
 
 def get_news():
-    feed = feedparser.parse('http://static.feed.rbc.ru/rbc/logical/footer/news.rss')
+    feed = feedparser.parse('https://lenta.ru/rss/top7')
     news = ''.join([f'{_ + 1}. [{entry.title}]({entry.link})\n' for _, entry in enumerate(feed.entries[:10])])
     return news
 
 
 class Horoscope:
     def __init__(self):
+        self.dict_horo = {
+            '0': '\U00002648 Овен:',
+            '1': '\U00002649 Телец:',
+            '2': '\U0000264A Близнецы:',
+            '3': '\U0000264B Рак:',
+            '4': '\U0000264C Лев:',
+            '5': '\U0000264D Дева:',
+            '6': '\U0000264E Весы:',
+            '7': '\U0000264F Скорпион:',
+            '8': '\U00002650 Стрелец:',
+            '9': '\U00002651 Козерог:',
+            '10': '\U00002652 Водолей:',
+            '11': '\U00002653 Рыбы:'
+        }
+
         self.keyboard = types.InlineKeyboardMarkup(row_width=3)
-        but1 = types.InlineKeyboardButton("\U00002648 Овен", callback_data='aries')
-        but2 = types.InlineKeyboardButton("\U00002649 Телец", callback_data='taurus')
-        but3 = types.InlineKeyboardButton("\U0000264A Близнецы", callback_data='gemini')
-        but4 = types.InlineKeyboardButton("\U0000264B Рак", callback_data='cancer')
-        but5 = types.InlineKeyboardButton("\U0000264C Лев", callback_data='leo')
-        but6 = types.InlineKeyboardButton("\U0000264D Дева", callback_data='virgo')
-        but7 = types.InlineKeyboardButton("\U0000264E Весы", callback_data='libra')
-        but8 = types.InlineKeyboardButton("\U0000264F Скорпион", callback_data='scorpio')
-        but9 = types.InlineKeyboardButton("\U00002650 Стрелец", callback_data='sagittarius')
-        but10 = types.InlineKeyboardButton("\U00002651 Козерог", callback_data='capricorn')
-        but11 = types.InlineKeyboardButton("\U00002652 Водолей", callback_data='aquarius')
-        but12 = types.InlineKeyboardButton("\U00002653 Рыбы", callback_data='pisces')
+        but1 = types.InlineKeyboardButton("\U00002648 Овен", callback_data='0')
+        but2 = types.InlineKeyboardButton("\U00002649 Телец", callback_data='1')
+        but3 = types.InlineKeyboardButton("\U0000264A Близнецы", callback_data='2')
+        but4 = types.InlineKeyboardButton("\U0000264B Рак", callback_data='3')
+        but5 = types.InlineKeyboardButton("\U0000264C Лев", callback_data='4')
+        but6 = types.InlineKeyboardButton("\U0000264D Дева", callback_data='5')
+        but7 = types.InlineKeyboardButton("\U0000264E Весы", callback_data='6')
+        but8 = types.InlineKeyboardButton("\U0000264F Скорпион", callback_data='7')
+        but9 = types.InlineKeyboardButton("\U00002650 Стрелец", callback_data='8')
+        but10 = types.InlineKeyboardButton("\U00002651 Козерог", callback_data='9')
+        but11 = types.InlineKeyboardButton("\U00002652 Водолей", callback_data='10')
+        but12 = types.InlineKeyboardButton("\U00002653 Рыбы", callback_data='11')
         self.keyboard.add(but1, but2, but3, but4, but5, but6, but7, but8,
                           but9, but10, but11, but12)
 
@@ -106,6 +139,12 @@ class Currency:
         self.from_ = from_
         self.to_ = to_
         self.currency_mode = currency_mode
+
+        self.cur_list_from = ('from_RUB', 'from_USD', 'from_EUR', 'from_СТН', 'from_JPY', 'from_KZT', 'from_GBP',
+                              'from_BYN', 'from_GEL')
+
+        self.cur_list_to = ('to_RUB', 'to_USD', 'to_EUR', 'to_СТН', 'to_JPY', 'to_KZT', 'to_GBP',
+                            'to_BYN', 'to_GEL')
 
         self.keyboard_from = types.InlineKeyboardMarkup(row_width=3)
         from_but1 = types.InlineKeyboardButton("RUB", callback_data='from_RUB')
@@ -145,61 +184,3 @@ class Currency:
         url = f"https://api.apilayer.com/exchangerates_data/convert?to={self.to_}&from={self.from_}&amount={amount}"
         currency = requests.request("GET", url, headers={"apikey": tkn_c}, data={})
         return f"{amount} {self.from_} = {round(amount * currency.json()['info']['rate'], 2)} {self.to_}"
-
-
-class Game:
-    # stone = \U0001F91C
-    # scissors = \U0000270C
-    # paper = \U0001FAF3
-    # lizard = \U0001F90F
-    # spoke = \U0001F596
-
-    def __init__(self, player_name='', player_move='', player_health=5, ai_health=5, game_win='', sti=''):
-        self.player_name = player_name
-        self.player_move = player_move
-        self.player_health = player_health
-        self.ai_health = ai_health
-        self.ai_move = ''
-        self.items = ['\U0001F91C', '\U0000270C', '\U0001FAF3', '\U0001F90F', '\U0001F596']
-        self.game_win = game_win
-
-        self.keyboard = types.InlineKeyboardMarkup(row_width=5)
-        but1 = types.InlineKeyboardButton("\U0001F91C", callback_data='\U0001F91C')
-        but2 = types.InlineKeyboardButton("\U0000270C", callback_data='\U0000270C')
-        but3 = types.InlineKeyboardButton("\U0001FAF3", callback_data='\U0001FAF3')
-        but4 = types.InlineKeyboardButton("\U0001F90F", callback_data='\U0001F90F')
-        but5 = types.InlineKeyboardButton("\U0001F596", callback_data='\U0001F596')
-        self.keyboard.add(but1, but2, but3, but4, but5)
-
-        self.sti = sti
-
-    def move(self, player_move):
-        self.ai_move = self.items[randint(0, 4)]
-        self.player_move = player_move
-        if player_move == self.ai_move:
-            pass
-        elif player_move == '\U0001F91C' and (self.ai_move == '\U0000270C' or self.ai_move == '\U0001F90F'):
-            self.ai_health -= 1
-        elif player_move == '\U0000270C' and (self.ai_move == '\U0001FAF3' or self.ai_move == '\U0001F90F'):
-            self.ai_health -= 1
-        elif player_move == '\U0001FAF3' and (self.ai_move == '\U0001F91C' or self.ai_move == '\U0001F596'):
-            self.ai_health -= 1
-        elif player_move == '\U0001F90F' and (self.ai_move == '\U0001F596' or self.ai_move == '\U0001FAF3'):
-            self.ai_health -= 1
-        elif player_move == '\U0001F596' and (self.ai_move == '\U0001F91C' or self.ai_move == '\U0000270C'):
-            self.ai_health -= 1
-        else:
-            self.player_health -= 1
-
-        if self.ai_health == 0:
-            self.game_win = 'Player'
-            self.sti = open('static\game_win.webp', 'rb')
-        elif self.player_health == 0:
-            self.game_win = 'AI'
-            self.sti = open('static\game_lose.webp', 'rb')
-
-    def __str__(self):
-        if self.player_move == '':
-            return f'Камень, ножницы, бумага, ящерица, Спок\nс Шелдном Купером!\n\n\U0001F466  \U00002694  \U0001F468\U0000200D\U0001F4BB\n\n\U0001F468\U0000200D\U0001F4BB Шелдон\n\U00002764 {self.ai_health}/5\n\n\U0001F466 {self.player_name}\n\U00002764 {self.player_health}/5\n'
-        else:
-            return f'Камень, ножницы, бумага, ящерица, Спок\nc Шелдном Купером!\n\n\U0001F466  \U00002694  \U0001F468\U0000200D\U0001F4BB\n\n\U0001F468\U0000200D\U0001F4BB Шелдон\n\U00002764 {self.ai_health}/5\nПоходил:  {self.ai_move}\n\n\U0001F466 {self.player_name}\n\U00002764 {self.player_health}/5\nПоходил:  {self.player_move}'

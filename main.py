@@ -1,49 +1,44 @@
 import telebot
-from telebot import types
-from utils import get_news, Weather, Horoscope, Currency, Game
+from utils import get_news, Menu, Weather, Horoscope, Currency
+from games import GameSpoke, GameTicTacToe
 from config import tkn
 
 bot = telebot.TeleBot(tkn)
+menu = Menu()
 weather = Weather()
 horo = Horoscope()
 cur = Currency()
-battle = Game()
+battle = GameSpoke()
+tic = GameTicTacToe()
 
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-    keyboard_menu = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    button1 = types.KeyboardButton('\U0001F326 Погода')
-    button2 = types.KeyboardButton('\U0001F525 Новости')
-    button3 = types.KeyboardButton('\U00002651 Гороскоп')
-    button4 = types.KeyboardButton('\U0001F4B1 Конвертация валют')
-    button5 = types.KeyboardButton('\U0001F3AE Миниигра')
-    keyboard_menu.add(button1, button2, button3, button4, button5)
-    sti = open('static\welcome.webp', 'rb')
+    sti = open('welcome.webp', 'rb')
     bot.send_sticker(message.chat.id, sti)
-    bot.send_message(message.chat.id, f'Мяу, Мяу-Мяу, {message.chat.first_name}!', reply_markup=keyboard_menu)
+    bot.send_message(message.chat.id, f'Мяу, Мяу-Мяу, {message.chat.first_name}!', reply_markup=menu.keyboard)
 
 
 @bot.message_handler(content_types=['text'])
 def handle_weather(message):
-    global weather, horo, cur, battle
+    global weather, horo, cur, battle, tic
 
     if message.chat.type == 'private':
         if message.text == '\U0001F326 Погода':
             bot.send_message(message.chat.id, f'Выберите ваш город:', reply_markup=weather.keyboard)
         elif message.text == '\U0001F525 Новости':
-            bot.send_message(message.chat.id, f'\U0001F525 Лента новостей от "РБК":\n{get_news()}',
+            bot.send_message(message.chat.id, f'\U0001F525 Актуальные новости от "Lenta.ru":\n{get_news()}',
                              parse_mode='Markdown')
         elif message.text == '\U00002651 Гороскоп':
             bot.send_message(message.chat.id, f'Выберите свой знак зодиака:', reply_markup=horo.keyboard)
-        elif message.text == '\U0001F4B1 Конвертация валют':
-            bot.send_message(message.chat.id, f'Курсы валют:\n{cur.start_currency()}\nИз какой валюты переводим?',
+        elif message.text == '\U0001F4B1 Конвертация валюты':
+            bot.send_message(message.chat.id, f'\U0001F4B1 Курсы валют:\n{cur.start_currency()}')
+            bot.send_message(message.chat.id, f'Из какой валюты переводим?',
                              reply_markup=cur.keyboard_from)
-        elif message.text == '\U0001F3AE Миниигра':
-            battle.sti = open('static\game_start.webp', 'rb')
-            bot.send_sticker(message.chat.id, battle.sti)
-            battle = Game(message.chat.first_name, '', 5, 5, '')
-            bot.send_message(message.chat.id, battle, reply_markup=battle.keyboard)
+        elif message.text == '\U0001F3AE Мини-игры':
+            bot.send_message(message.chat.id,
+                             f'В какую игру будем играть?\n\U0001F596 Камень, ножницы, бумага, ящерица, Спок\n\U0000274C Крестики-Нолики',
+                             reply_markup=menu.game_keyboard)
 
         if cur.currency_mode:
             if len(message.text.split()) > 1:
@@ -59,113 +54,37 @@ def handle_weather(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
-    global weather, horo, cur, battle
+    global weather, horo, cur, battle, tic
 
-    if call.data == 'Москва':
-        bot.send_message(call.message.chat.id, weather.get_weather('Москва'))
-    elif call.data == 'С.-Петербург':
-        bot.send_message(call.message.chat.id, weather.get_weather('С.-Петербург'))
-    elif call.data == 'Новосибирск':
-        bot.send_message(call.message.chat.id, weather.get_weather('Новосибирск'))
-    elif call.data == 'Екатеринбург':
-        bot.send_message(call.message.chat.id, weather.get_weather('Екатеринбург'))
-    elif call.data == 'Казань':
-        bot.send_message(call.message.chat.id, weather.get_weather('Казань'))
-    elif call.data == 'Н. Новгород':
-        bot.send_message(call.message.chat.id, weather.get_weather('Н. Новгород'))
-    elif call.data == 'Сочи':
-        bot.send_message(call.message.chat.id, weather.get_weather('Сочи'))
-    elif call.data == 'Самара':
-        bot.send_message(call.message.chat.id, weather.get_weather('Самара'))
-    elif call.data == 'aries':
-        bot.send_message(call.message.chat.id, f'\U00002648 Овен:\n{horo.get_horo()[0]}')
-    elif call.data == 'taurus':
-        bot.send_message(call.message.chat.id, f'\U00002649 Телец:\n{horo.get_horo()[1]}')
-    elif call.data == 'gemini':
-        bot.send_message(call.message.chat.id, f'\U0000264A Близнецы:\n{horo.get_horo()[2]}')
-    elif call.data == 'cancer':
-        bot.send_message(call.message.chat.id, f'\U0000264B Рак:\n{horo.get_horo()[3]}')
-    elif call.data == 'leo':
-        bot.send_message(call.message.chat.id, f'\U0000264C Лев:\n{horo.get_horo()[4]}')
-    elif call.data == 'virgo':
-        bot.send_message(call.message.chat.id, f'\U0000264D Дева:\n{horo.get_horo()[5]}')
-    elif call.data == 'libra':
-        bot.send_message(call.message.chat.id, f'\U0000264E Весы:\n{horo.get_horo()[6]}')
-    elif call.data == 'scorpio':
-        bot.send_message(call.message.chat.id, f'\U0000264F Скорпион:\n{horo.get_horo()[7]}')
-    elif call.data == 'sagittarius':
-        bot.send_message(call.message.chat.id, f'\U00002650 Стрелец:\n{horo.get_horo()[8]}')
-    elif call.data == 'capricorn':
-        bot.send_message(call.message.chat.id, f'\U00002651 Козерог:\n{horo.get_horo()[9]}')
-    elif call.data == 'aquarius':
-        bot.send_message(call.message.chat.id, f'\U00002652 Водолей:\n{horo.get_horo()[10]}')
-    elif call.data == 'pisces':
-        bot.send_message(call.message.chat.id, f'\U00002653 Рыбы:\n{horo.get_horo()[11]}')
-    elif call.data == 'from_RUB':
-        cur.from_ = 'RUB'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'from_USD':
-        cur.from_ = 'USD'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'from_EUR':
-        cur.from_ = 'EUR'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'from_СТН':
-        cur.from_ = 'СТН'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'from_JPY':
-        cur.from_ = 'JPY'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'from_KZT':
-        cur.from_ = 'KZT'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'from_GBP':
-        cur.from_ = 'GBP'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'from_BYN':
-        cur.from_ = 'BYN'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'from_GEL':
-        cur.from_ = 'GEL'
-        bot.send_message(call.message.chat.id, f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
-    elif call.data == 'to_RUB':
-        cur.to_ = 'RUB'
+    if call.data in weather.dict_city.keys():
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
+        bot.send_message(call.message.chat.id, weather.get_weather(call.data))
+    elif call.data in horo.dict_horo.keys():
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
+        bot.send_message(call.message.chat.id, f'{horo.dict_horo[call.data]}\n{horo.get_horo()[int(call.data)]}')
+    elif call.data in cur.cur_list_from:
+        cur.from_ = call.data[5:]
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
+                              text=f'В какую валюту переводим?', reply_markup=cur.keyboard_to)
+    elif call.data in cur.cur_list_to:
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
+        cur.to_ = call.data[3:]
         cur.currency_mode = True
         bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == 'to_USD':
-        cur.to_ = 'USD'
-        cur.currency_mode = True
-        bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == 'to_EUR':
-        cur.to_ = 'EUR'
-        cur.currency_mode = True
-        bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == 'to_СТН':
-        cur.to_ = 'СТН'
-        cur.currency_mode = True
-        bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == 'to_JPY':
-        cur.to_ = 'JPY'
-        cur.currency_mode = True
-        bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == 'to_KZT':
-        cur.to_ = 'KZT'
-        cur.currency_mode = True
-        bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == 'to_GBP':
-        cur.to_ = 'GBP'
-        cur.currency_mode = True
-        bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == 'to_BYN':
-        cur.to_ = 'BYN'
-        cur.currency_mode = True
-        bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == 'to_GEL':
-        cur.to_ = 'GEL'
-        cur.currency_mode = True
-        bot.send_message(call.message.chat.id, f'Введите сумму:')
-    elif call.data == '\U0001F91C':
-        battle.move('\U0001F91C')
+    elif call.data == 'Ящерица-Спок':
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
+        battle.sti = open('game_start_spoke.webp', 'rb')
+        bot.send_sticker(call.message.chat.id, battle.sti)
+        battle = GameSpoke(call.message.chat.first_name, '', 5, 5, '')
+        bot.send_message(call.message.chat.id, battle, reply_markup=battle.keyboard)
+    elif call.data == 'Крестики-Нолики':
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
+        tic.sti = open('game_start_tictactoe.webp', 'rb')
+        bot.send_sticker(call.message.chat.id, tic.sti)
+        tic = GameTicTacToe()
+        bot.send_message(call.message.chat.id, tic, reply_markup=tic.keyboard)
+    elif call.data in battle.items:
+        battle.move(call.data)
         if battle.game_win == 'AI':
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
             bot.send_sticker(call.message.chat.id, battle.sti)
@@ -177,58 +96,23 @@ def callback_inline(call):
         else:
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text=battle,
                                   reply_markup=battle.keyboard)
-    elif call.data == '\U0000270C':
-        battle.move('\U0000270C')
-        if battle.game_win == 'AI':
+    elif call.data in tic.items:
+        tic.move(call.data)
+        if tic.game_win == 'Player':
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
-            bot.send_sticker(call.message.chat.id, battle.sti)
-            bot.send_message(call.message.chat.id, f'You lose!')
-        elif battle.game_win == 'Player':
-            bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
-            bot.send_sticker(call.message.chat.id, battle.sti)
+            bot.send_sticker(call.message.chat.id, tic.sti)
             bot.send_message(call.message.chat.id, f'You win!')
-        else:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text=battle,
-                                  reply_markup=battle.keyboard)
-    elif call.data == '\U0001FAF3':
-        battle.move('\U0001FAF3')
-        if battle.game_win == 'AI':
+        elif tic.game_win == 'AI':
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
-            bot.send_sticker(call.message.chat.id, battle.sti)
+            bot.send_sticker(call.message.chat.id, tic.sti)
             bot.send_message(call.message.chat.id, f'You lose!')
-        elif battle.game_win == 'Player':
+        elif tic.game_win == 'Draw':
             bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
-            bot.send_sticker(call.message.chat.id, battle.sti)
-            bot.send_message(call.message.chat.id, f'You win!')
-        else:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text=battle,
-                                  reply_markup=battle.keyboard)
-    elif call.data == '\U0001F90F':
-        battle.move('\U0001F90F')
-        if battle.game_win == 'AI':
-            bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
-            bot.send_sticker(call.message.chat.id, battle.sti)
-            bot.send_message(call.message.chat.id, f'You lose!')
-        elif battle.game_win == 'Player':
-            bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
-            bot.send_sticker(call.message.chat.id, battle.sti)
-            bot.send_message(call.message.chat.id, f'You win!')
-        else:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text=battle,
-                                  reply_markup=battle.keyboard)
-    elif call.data == '\U0001F596':
-        battle.move('\U0001F596')
-        if battle.game_win == 'AI':
-            bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
-            bot.send_sticker(call.message.chat.id, battle.sti)
-            bot.send_message(call.message.chat.id, f'You lose!')
-        elif battle.game_win == 'Player':
-            bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.id)
-            bot.send_sticker(call.message.chat.id, battle.sti)
-            bot.send_message(call.message.chat.id, f'You win!')
-        else:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text=battle,
-                                  reply_markup=battle.keyboard)
+            bot.send_sticker(call.message.chat.id, tic.sti)
+            bot.send_message(call.message.chat.id, f'Ok, draw!')
+        elif tic.game_win == ' ':
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id, text=tic,
+                                  reply_markup=tic.keyboard)
 
 
 bot.polling(none_stop=True)
